@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: nova_mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: nova_store_db
+    volumes:
+      - mongo_data:/data/db
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: nova_backend
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - MONGODB_URL=mongodb://mongodb:27017
+      - MONGODB_DB_NAME=nova_store_db
+      - SECRET_KEY=${SECRET_KEY:?Set SECRET_KEY in .env}
+      - ADMIN_DEFAULT_PASSWORD=${ADMIN_DEFAULT_PASSWORD:?Set ADMIN_DEFAULT_PASSWORD in .env}
+      - CUSTOMER_DEFAULT_PASSWORD=${CUSTOMER_DEFAULT_PASSWORD:?Set CUSTOMER_DEFAULT_PASSWORD in .env}
+      - FRONTEND_URL=http://localhost:5173
+      - RAZORPAY_KEY_ID=rzp_test_placeholderKeyId
+      - RAZORPAY_KEY_SECRET=placeholderKeySecret
+    depends_on:
+      - mongodb
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: nova_frontend
+    restart: always
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
+volumes:
+  mongo_data:
